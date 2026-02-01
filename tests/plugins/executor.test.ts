@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
+import path from 'node:path';
 import { executeCommand } from '../../src/plugins/executor.js';
 import { createStorage } from '../../src/storage/index.js';
 
 const TEST_DIR = '/tmp/mcp-build-executor-test';
+const PROJECT_DIR = '/tmp/mcp-build-executor-project';
 
 describe('executeCommand', () => {
   beforeEach(() => {
@@ -86,5 +88,35 @@ describe('executeCommand', () => {
         runWriter,
       })
     ).rejects.toThrow();
+  });
+
+  it('finds executables in node_modules/.bin', async () => {
+    // Create a mock project with node_modules/.bin
+    rmSync(PROJECT_DIR, { recursive: true, force: true });
+    const binDir = path.join(PROJECT_DIR, 'node_modules', '.bin');
+    mkdirSync(binDir, { recursive: true });
+
+    // Create a mock executable script
+    const scriptPath = path.join(binDir, 'my-test-tool');
+    writeFileSync(scriptPath, '#!/bin/sh\necho "tool output"');
+    chmodSync(scriptPath, 0o755);
+
+    const storage = createStorage();
+    const runWriter = storage.createRun('test', PROJECT_DIR, ['my-test-tool']);
+
+    const result = await executeCommand({
+      command: 'my-test-tool',
+      args: [],
+      cwd: PROJECT_DIR,
+      runWriter,
+    });
+
+    runWriter.complete(result.exitCode);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('tool output');
+
+    // Cleanup
+    rmSync(PROJECT_DIR, { recursive: true, force: true });
   });
 });

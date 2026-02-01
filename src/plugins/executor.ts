@@ -3,6 +3,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 import type { RunWriter } from '../storage/index.js';
 
 export interface ExecuteCommandOptions {
@@ -17,6 +18,17 @@ export interface ExecuteCommandResult {
   output: string;
 }
 
+function buildEnvWithNodeModulesBin(cwd: string): NodeJS.ProcessEnv {
+  const nodeModulesBin = path.join(cwd, 'node_modules', '.bin');
+  const currentPath = process.env['PATH'] ?? '';
+  const pathSeparator = process.platform === 'win32' ? ';' : ':';
+
+  return {
+    ...process.env,
+    PATH: `${nodeModulesBin}${pathSeparator}${currentPath}`,
+  };
+}
+
 export function executeCommand(
   options: ExecuteCommandOptions
 ): Promise<ExecuteCommandResult> {
@@ -29,6 +41,7 @@ export function executeCommand(
       cwd,
       shell: false,
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: buildEnvWithNodeModulesBin(cwd),
     });
 
     child.stdout.on('data', (chunk: Buffer) => {

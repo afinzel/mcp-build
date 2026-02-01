@@ -35,6 +35,7 @@ Implementation specs are in `requirements/spec/`. Load the relevant spec for the
   ├── storage/         # Run data persistence
   ├── plugins/         # Plugin implementations
   └── index.ts         # Server entry point
+  tests/               # Tests mirror src/ structure
   ```
 
 ### TypeScript
@@ -47,7 +48,7 @@ Implementation specs are in `requirements/spec/`. Load the relevant spec for the
 ### Testing
 
 - **Everything must be unit tested**
-- Tests live alongside source: `foo.ts` → `foo.test.ts`
+- Tests live in `tests/` mirroring `src/` structure: `src/plugins/foo.ts` → `tests/plugins/foo.test.ts`
 - Use descriptive test names: `it('returns empty array when no diagnostics found')`
 - Test edge cases and error conditions
 - Run tests before committing

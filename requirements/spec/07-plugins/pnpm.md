@@ -89,6 +89,78 @@ Errors:
 
 ---
 
+## pnpm.build
+
+### Overview
+
+| Property | Value |
+|----------|-------|
+| Name | `pnpm.build` |
+| Mutates Workspace | `false` |
+
+### Command
+
+```bash
+pnpm run build [-- args...]
+```
+
+Runs the `build` script defined in package.json.
+
+---
+
+## pnpm.test
+
+### Overview
+
+| Property | Value |
+|----------|-------|
+| Name | `pnpm.test` |
+| Mutates Workspace | `false` |
+
+### Command
+
+```bash
+pnpm run test [-- args...]
+```
+
+Runs the `test` script defined in package.json. Parses Jest output for diagnostics.
+
+### Test Summary
+
+Responses include aggregated pass/fail counts:
+
+```json
+{
+  "summary": {
+    "passed": 45,
+    "failed": 3,
+    "skipped": 2,
+    "total": 50
+  }
+}
+```
+
+---
+
+## pnpm.run
+
+### Overview
+
+| Property | Value |
+|----------|-------|
+| Name | `pnpm.run` |
+| Mutates Workspace | `false` |
+
+### Command
+
+```bash
+pnpm run <script> [-- args...]
+```
+
+Runs any script defined in package.json. First argument is the script name.
+
+---
+
 ## Cross-References
 
 - Plugin interface: see `03-plugin-architecture.md`

@@ -34,8 +34,20 @@ interface ToolResponse {
   success: boolean;
   errors: Diagnostic[];
   warnings: Diagnostic[];
-  summary: { errorCount: number; warningCount: number };
   runId: string;
+  summary?: TestSummary;  // present for test plugins only
+}
+```
+
+Test plugins include a summary with pass/fail counts:
+
+```typescript
+interface TestSummary {
+  passed: number;
+  failed: number;
+  skipped: number;
+  total: number;
+  projectsBuildFailed?: number;
 }
 ```
 
@@ -69,7 +81,7 @@ interface Diagnostic {
 
 ## Typical Workflow
 
-**1. Run tool, get structured response:**
+**1. Run build tool, get structured response:**
 ```json
 {
   "success": false,
@@ -85,8 +97,23 @@ interface Diagnostic {
     "byteOffsets": { "start": 1847, "end": 1952 }
   }],
   "warnings": [],
-  "summary": { "errorCount": 1, "warningCount": 0 },
   "runId": "a1b2c3d4-..."
+}
+```
+
+**1b. Run test tool, get test summary:**
+```json
+{
+  "success": true,
+  "errors": [],
+  "warnings": [],
+  "runId": "e5f6g7h8-...",
+  "summary": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "total": 18
+  }
 }
 ```
 

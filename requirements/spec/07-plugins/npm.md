@@ -90,6 +90,78 @@ Errors:
 
 ---
 
+## npm.build
+
+### Overview
+
+| Property | Value |
+|----------|-------|
+| Name | `npm.build` |
+| Mutates Workspace | `false` |
+
+### Command
+
+```bash
+npm run build [-- args...]
+```
+
+Runs the `build` script defined in package.json.
+
+---
+
+## npm.test
+
+### Overview
+
+| Property | Value |
+|----------|-------|
+| Name | `npm.test` |
+| Mutates Workspace | `false` |
+
+### Command
+
+```bash
+npm run test [-- args...]
+```
+
+Runs the `test` script defined in package.json. Parses Jest output for diagnostics.
+
+### Test Summary
+
+Responses include aggregated pass/fail counts:
+
+```json
+{
+  "summary": {
+    "passed": 45,
+    "failed": 3,
+    "skipped": 2,
+    "total": 50
+  }
+}
+```
+
+---
+
+## npm.run
+
+### Overview
+
+| Property | Value |
+|----------|-------|
+| Name | `npm.run` |
+| Mutates Workspace | `false` |
+
+### Command
+
+```bash
+npm run <script> [-- args...]
+```
+
+Runs any script defined in package.json. First argument is the script name.
+
+---
+
 ## Cross-References
 
 - Plugin interface: see `03-plugin-architecture.md`

@@ -77,6 +77,21 @@ Failed TestClass.TestMethod [42 ms]
 }
 ```
 
+**Test summary:** Responses include aggregated pass/fail counts across all test projects:
+```json
+{
+  "summary": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "total": 18,
+    "projectsBuildFailed": 0
+  }
+}
+```
+
+The `projectsBuildFailed` field counts test projects that failed to compile and therefore didn't run.
+
 ---
 
 ## Cross-References

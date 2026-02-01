@@ -105,9 +105,15 @@ export function parseDotnetTestSummary(output: string): TestSummary | undefined 
   // Regex created inside function to avoid lastIndex state issues with global flag
   // Matches: Passed! - Failed: 0, Passed: 11, Skipped: 0, Total: 11
   // Also matches: Failed! - Failed: 2, Passed: 9, Skipped: 0, Total: 11
-  const regex =
+  const summaryRegex =
     /(?:Passed!|Failed!)\s*-\s*Failed:\s*(\d+),\s*Passed:\s*(\d+),\s*Skipped:\s*(\d+),\s*Total:\s*(\d+)/g;
-  const matches = output.matchAll(regex);
+
+  // Matches build errors in test projects: error CS0021: ... [/path/to/Something.Tests.csproj]
+  const buildErrorRegex = /: error \w+\d+:.+\[(.+?\.Tests\.csproj)\]/g;
+
+  const summaryMatches = output.matchAll(summaryRegex);
+  const buildErrorMatches = output.matchAll(buildErrorRegex);
+
   let found = false;
   const summary: TestSummary = {
     passed: 0,
@@ -116,12 +122,23 @@ export function parseDotnetTestSummary(output: string): TestSummary | undefined 
     total: 0,
   };
 
-  for (const match of matches) {
+  for (const match of summaryMatches) {
     found = true;
     summary.failed += parseInt(match[1], 10);
     summary.passed += parseInt(match[2], 10);
     summary.skipped += parseInt(match[3], 10);
     summary.total += parseInt(match[4], 10);
+  }
+
+  // Count unique test projects with build errors
+  const projectsWithBuildErrors = new Set<string>();
+  for (const match of buildErrorMatches) {
+    projectsWithBuildErrors.add(match[1]);
+  }
+
+  if (projectsWithBuildErrors.size > 0) {
+    found = true;
+    summary.projectsBuildFailed = projectsWithBuildErrors.size;
   }
 
   return found ? summary : undefined;

@@ -49,13 +49,28 @@ interface ToolResponse {
   success: boolean;
   errors: Diagnostic[];
   warnings: Diagnostic[];
-  summary: {
-    errorCount: number;
-    warningCount: number;
-  };
   runId: string;          // for raw output retrieval
+  summary?: TestSummary;  // present for test plugins only
 }
 ```
+
+---
+
+## Test Summary
+
+Test plugins (`dotnet.test`, `npm.test`, `pnpm.test`) include a summary of test results:
+
+```typescript
+interface TestSummary {
+  passed: number;
+  failed: number;
+  skipped: number;
+  total: number;
+  projectsBuildFailed?: number;  // count of test projects that failed to compile
+}
+```
+
+**Note:** When running tests across multiple projects (e.g., a solution or monorepo), counts are aggregated. The `projectsBuildFailed` field indicates how many test projects failed to build and therefore didn't run.
 
 ---
 

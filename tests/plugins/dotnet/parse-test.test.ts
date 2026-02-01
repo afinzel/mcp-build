@@ -169,4 +169,58 @@ Failed!  - Failed:     2, Passed:     8, Skipped:     0, Total:    10
       total: 16,
     });
   });
+
+  it('counts projects with build errors', () => {
+    const output = `
+Test run for /app/ProjectA.Tests/bin/ProjectA.Tests.dll (.NETCoreApp,Version=v10.0)
+Starting test execution, please wait...
+
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5
+
+/app/ProjectB.Tests/SomeTest.cs(10,5): error CS0021: Cannot apply indexing [/app/ProjectB.Tests/ProjectB.Tests.csproj]
+/app/ProjectB.Tests/OtherTest.cs(20,5): error CS0103: Name does not exist [/app/ProjectB.Tests/ProjectB.Tests.csproj]
+`;
+    const summary = parseDotnetTestSummary(output);
+
+    expect(summary).toEqual({
+      passed: 5,
+      failed: 0,
+      skipped: 0,
+      total: 5,
+      projectsBuildFailed: 1,
+    });
+  });
+
+  it('counts multiple projects with build errors', () => {
+    const output = `
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5
+
+/app/ProjectA.Tests/Test.cs(10,5): error CS0021: Error [/app/ProjectA.Tests/ProjectA.Tests.csproj]
+/app/ProjectB.Tests/Test.cs(10,5): error CS0103: Error [/app/ProjectB.Tests/ProjectB.Tests.csproj]
+`;
+    const summary = parseDotnetTestSummary(output);
+
+    expect(summary).toEqual({
+      passed: 5,
+      failed: 0,
+      skipped: 0,
+      total: 5,
+      projectsBuildFailed: 2,
+    });
+  });
+
+  it('returns summary with only build errors (no successful tests)', () => {
+    const output = `
+/app/Tests/Test.cs(10,5): error CS0021: Error [/app/Tests/MyProject.Tests.csproj]
+`;
+    const summary = parseDotnetTestSummary(output);
+
+    expect(summary).toEqual({
+      passed: 0,
+      failed: 0,
+      skipped: 0,
+      total: 0,
+      projectsBuildFailed: 1,
+    });
+  });
 });

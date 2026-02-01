@@ -7,6 +7,7 @@ import { executeCommand } from '../executor.js';
 import { chainParsers } from '../parse-chain.js';
 import { parsePnpmOutput } from './parse-pnpm.js';
 import { parseTypescriptOutput } from '../typescript/parse-typescript.js';
+import { parseNextjsOutput } from '../nextjs/parse-nextjs.js';
 
 export const pnpmBuildPlugin: Plugin = {
   name: 'pnpm.build',
@@ -45,7 +46,7 @@ export const pnpmBuildPlugin: Plugin = {
     });
 
     const diagnostics = chainParsers(
-      [parsePnpmOutput, parseTypescriptOutput],
+      [parsePnpmOutput, parseTypescriptOutput, parseNextjsOutput],
       { tool: 'pnpm.build', output: result.output }
     );
 

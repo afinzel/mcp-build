@@ -7,6 +7,7 @@ import { executeCommand } from '../executor.js';
 import { chainParsers } from '../parse-chain.js';
 import { parseNpmOutput } from './parse-npm.js';
 import { parseTypescriptOutput } from '../typescript/parse-typescript.js';
+import { parseNextjsOutput } from '../nextjs/parse-nextjs.js';
 
 export const npmBuildPlugin: Plugin = {
   name: 'npm.build',
@@ -45,7 +46,7 @@ export const npmBuildPlugin: Plugin = {
     });
 
     const diagnostics = chainParsers(
-      [parseNpmOutput, parseTypescriptOutput],
+      [parseNpmOutput, parseTypescriptOutput, parseNextjsOutput],
       { tool: 'npm.build', output: result.output }
     );
 

@@ -14,3 +14,4 @@ export * from './npm/index.js';
 export * from './pnpm/index.js';
 export * from './eslint/index.js';
 export * from './typescript/index.js';
+export * from './nextjs/index.js';

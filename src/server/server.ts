@@ -30,7 +30,11 @@ export interface McpServer {
 const RAW_OUTPUT_TOOLS = [
   {
     name: 'run.raw',
-    description: 'Get raw log output by byte offset. Use for debugging when structured diagnostics are insufficient.',
+    description:
+      'Get raw log output by byte offset. Use to get full stack traces from failed tests, ' +
+      'or when the structured errors array is empty but success=false. ' +
+      'Workflow: After dotnet_test/dotnet_build returns a failure, call run_raw with the runId to see complete error output. ' +
+      'Prefer this for initial debugging; use run_logRange to zoom into specific sections.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -43,7 +47,10 @@ const RAW_OUTPUT_TOOLS = [
   },
   {
     name: 'run.logRange',
-    description: 'Get log lines by line number. Use to fetch context around a diagnostic.',
+    description:
+      'Get log lines by line number. Use when you need context around a specific line number from a diagnostic. ' +
+      'Each diagnostic includes logRange.startLine - use this to fetch surrounding context. ' +
+      'Prefer run_raw for initial debugging; use run_logRange to zoom into specific sections after identifying the area of interest.',
     inputSchema: {
       type: 'object',
       properties: {

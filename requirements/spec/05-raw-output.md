@@ -16,6 +16,12 @@ Use raw logs for: debugging parser failures, investigating unexpected errors, ac
 
 Byte-offset paged access to raw output.
 
+**When to use:**
+- Get full stack traces from failed tests
+- When the structured errors array is empty but `success=false`
+- Initial debugging to understand what happened
+- Prefer this over `run.logRange` for first-pass investigation
+
 **Input:**
 ```typescript
 { runId: string, offset?: number, length?: number }  // defaults: 0, 4096
@@ -32,11 +38,25 @@ Byte-offset paged access to raw output.
 }
 ```
 
+**Example workflow:**
+```typescript
+// After dotnet_test returns a failure, get complete output:
+const result = dotnet_test({ cwd: "/app" });  // success: false
+const raw = run_raw({ runId: result.runId }); // see full output including stack traces
+```
+
 ---
 
 ## run.logRange
 
 Line-based access using indexed ranges.
+
+**When to use:**
+- Fetch context around a specific line number from a diagnostic
+- Zoom into a specific section after identifying the area of interest with `run.raw`
+- Each diagnostic includes `logRange.startLine` - use this to get surrounding context
+
+**Prefer `run.raw` for initial debugging; use `run.logRange` to zoom into specific sections.**
 
 **Input:**
 ```typescript
@@ -52,6 +72,17 @@ Line-based access using indexed ranges.
   totalLines: number,
   hasMore: boolean
 }
+```
+
+**Example:**
+```typescript
+// Get context around a diagnostic
+const diagnostic = result.errors[0];
+const context = run_logRange({
+  runId: result.runId,
+  startLine: diagnostic.logRange.startLine - 5,
+  lineCount: 15
+});
 ```
 
 ---

@@ -10,7 +10,9 @@ import { parseTestOutput, parseDotnetTestSummary } from './parse-test.js';
 
 export const dotnetTestPlugin: Plugin = {
   name: 'dotnet.test',
-  description: 'Run .NET tests',
+  description:
+    'Run .NET tests. Returns structured test results with pass/fail counts. ' +
+    'Use run_raw with the returned runId to get full stack traces and detailed output.',
   mutatesWorkspace: false,
   inputSchema: {
     type: 'object',
@@ -18,7 +20,11 @@ export const dotnetTestPlugin: Plugin = {
       args: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Arguments passed to dotnet test',
+        description:
+          'Arguments passed to dotnet test. Supports standard dotnet test arguments. ' +
+          'Examples: ["--filter", "FullyQualifiedName~MyTestName"] to run specific tests, ' +
+          '["--verbosity", "detailed"] for verbose output, ' +
+          '["--no-build"] to skip building before testing.',
       },
       cwd: {
         type: 'string',

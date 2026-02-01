@@ -8,7 +8,9 @@ import { parseBuildOutput } from './parse-build.js';
 
 export const dotnetBuildPlugin: Plugin = {
   name: 'dotnet.build',
-  description: 'Build a .NET project or solution',
+  description:
+    'Build a .NET project or solution. Returns structured build errors and warnings. ' +
+    'Use run_raw with the returned runId to get full output if errors array is empty but success=false.',
   mutatesWorkspace: false,
   inputSchema: {
     type: 'object',
@@ -16,7 +18,11 @@ export const dotnetBuildPlugin: Plugin = {
       args: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Arguments passed to dotnet build',
+        description:
+          'Arguments passed to dotnet build. Supports standard dotnet build arguments. ' +
+          'Examples: ["--configuration", "Release"] for release builds, ' +
+          '["--no-restore"] to skip package restore, ' +
+          '["--verbosity", "minimal"] to reduce output.',
       },
       cwd: {
         type: 'string',

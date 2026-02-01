@@ -126,6 +126,34 @@ run.logRange({ runId: "a1b2c3d4-...", startLine: 10, lineCount: 10 })
 
 ---
 
+## Debugging Workflow
+
+When a build or test fails, follow this workflow:
+
+1. **Run dotnet_test/dotnet_build** → get structured errors + runId
+2. **If errors array is empty but success=false**, use `run.raw` to see what happened
+3. **For test failures**, use `run.raw` to get full stack traces
+4. **Use `run.logRange`** to fetch specific line ranges around an error (each diagnostic includes `logRange.startLine`)
+
+**Example: Investigating a test failure**
+```typescript
+// 1. Run tests
+const result = dotnet_test({ cwd: "/app" });
+// result: { success: false, errors: [...], runId: "abc123", summary: { failed: 1 } }
+
+// 2. Get full output with stack traces
+const raw = run_raw({ runId: "abc123" });
+
+// 3. Or zoom into a specific diagnostic
+const context = run_logRange({
+  runId: "abc123",
+  startLine: result.errors[0].logRange.startLine - 5,
+  lineCount: 20
+});
+```
+
+---
+
 ## When to Fetch Raw Logs
 
 Claude should request raw logs only when:
@@ -133,6 +161,8 @@ Claude should request raw logs only when:
 - Multiple related errors need surrounding context
 - The error message references output not captured in diagnostics
 - Debugging why a command failed unexpectedly
+- **Test failures** - to see full stack traces
+- **Empty errors array** - when success=false but no diagnostics parsed
 
 **Default behavior:** Structured diagnostics are sufficient 90%+ of the time.
 

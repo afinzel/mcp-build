@@ -7,6 +7,7 @@ import { executeCommand } from '../executor.js';
 import { chainParsers } from '../parse-chain.js';
 import { parseNpmOutput } from './parse-npm.js';
 import { parseTypescriptOutput } from '../typescript/parse-typescript.js';
+import { parseJestOutput } from '../jest/index.js';
 
 export const npmTestPlugin: Plugin = {
   name: 'npm.test',
@@ -45,7 +46,7 @@ export const npmTestPlugin: Plugin = {
     });
 
     const diagnostics = chainParsers(
-      [parseNpmOutput, parseTypescriptOutput],
+      [parseNpmOutput, parseTypescriptOutput, parseJestOutput],
       { tool: 'npm.test', output: result.output }
     );
 

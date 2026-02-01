@@ -95,7 +95,7 @@ describe('createToolHandler', () => {
       expect(isToolResponse(result)).toBe(true);
       if (isToolResponse(result)) {
         expect(result.success).toBe(true);
-        expect(result.errors).toHaveLength(0);
+        expect(result.errors).toBeUndefined();
         expect(result.runId).toBeTruthy();
       }
     });
@@ -163,8 +163,6 @@ describe('createToolHandler', () => {
       if (isToolResponse(result)) {
         expect(result.errors).toHaveLength(1);
         expect(result.warnings).toHaveLength(1);
-        expect(result.summary.errorCount).toBe(1);
-        expect(result.summary.warningCount).toBe(1);
       }
     });
 

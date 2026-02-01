@@ -2,19 +2,40 @@
  * Tool response types
  */
 
-import type { Diagnostic, DiagnosticSummary } from './diagnostic.js';
+import type { Diagnostic } from './diagnostic.js';
+
+/**
+ * Simplified diagnostic for LLM consumption
+ */
+export interface SimpleDiagnostic {
+  message: string;
+  file?: string;
+  line?: number;
+  column?: number;
+  code?: string;
+}
 
 export interface ToolResponse {
   /** Whether the operation succeeded */
   success: boolean;
-  /** Error diagnostics */
-  errors: Diagnostic[];
-  /** Warning diagnostics */
-  warnings: Diagnostic[];
-  /** Counts summary */
-  summary: DiagnosticSummary;
+  /** Error diagnostics (omitted if empty) */
+  errors?: SimpleDiagnostic[];
+  /** Warning diagnostics (omitted if empty) */
+  warnings?: SimpleDiagnostic[];
   /** Run ID for raw output retrieval */
   runId: string;
+}
+
+/**
+ * Convert full diagnostic to simplified form
+ */
+function simplifyDiagnostic(d: Diagnostic): SimpleDiagnostic {
+  const simple: SimpleDiagnostic = { message: d.message };
+  if (d.file) simple.file = d.file;
+  if (d.line) simple.line = d.line;
+  if (d.column) simple.column = d.column;
+  if (d.code) simple.code = d.code;
+  return simple;
 }
 
 /**
@@ -24,16 +45,11 @@ export function createSuccessResponse(
   runId: string,
   warnings: Diagnostic[] = []
 ): ToolResponse {
-  return {
-    success: true,
-    errors: [],
-    warnings,
-    summary: {
-      errorCount: 0,
-      warningCount: warnings.length,
-    },
-    runId,
-  };
+  const response: ToolResponse = { success: true, runId };
+  if (warnings.length > 0) {
+    response.warnings = warnings.map(simplifyDiagnostic);
+  }
+  return response;
 }
 
 /**
@@ -44,14 +60,13 @@ export function createErrorResponse(
   errors: Diagnostic[],
   warnings: Diagnostic[] = []
 ): ToolResponse {
-  return {
+  const response: ToolResponse = {
     success: false,
-    errors,
-    warnings,
-    summary: {
-      errorCount: errors.length,
-      warningCount: warnings.length,
-    },
+    errors: errors.map(simplifyDiagnostic),
     runId,
   };
+  if (warnings.length > 0) {
+    response.warnings = warnings.map(simplifyDiagnostic);
+  }
+  return response;
 }

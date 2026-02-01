@@ -12,7 +12,41 @@ An MCP server providing structured access to build, test, lint, and package-mana
 | `pnpm.install` | Install pnpm packages | Yes |
 | `eslint.lint` | Run ESLint on files | No |
 
-## Installation (Claude Desktop)
+## Installation
+
+### Claude Code (CLI)
+
+1. Build the server:
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. Add to `~/.claude.json` (user scope). Add `mcpServers` at the **top level** of the file:
+   ```json
+   {
+     "mcpServers": {
+       "mcp-build": {
+         "type": "stdio",
+         "command": "/opt/homebrew/bin/node",
+         "args": ["/absolute/path/to/mcp-build/dist/main.js"]
+       }
+     },
+     ... other existing fields ...
+   }
+   ```
+
+   **Important notes:**
+   - Use the full path to `node` (run `which node` to find it) to avoid PATH issues
+   - Use an absolute path to `main.js`
+   - The config is **NOT** at `~/.claude/mcp.json` or `~/.config/claude/mcp.json`
+   - For project-scoped config, use `.mcp.json` in the project root instead
+
+3. Restart Claude Code.
+
+4. Verify with `/mcp` command in Claude Code.
+
+### Claude Desktop
 
 1. Build the server:
    ```bash

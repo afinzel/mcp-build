@@ -1,0 +1,90 @@
+import { describe, it, expect } from 'vitest';
+import { parseTestOutput } from '../../../src/plugins/dotnet/parse-test.js';
+
+describe('parseTestOutput', () => {
+  it('returns empty array for passing tests', () => {
+    const output = `
+Test run for /app/tests.dll (.NETCoreApp,Version=v6.0)
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5
+`;
+    const diagnostics = parseTestOutput({ tool: 'dotnet.test', output });
+
+    expect(diagnostics).toEqual([]);
+  });
+
+  it('parses failed test with error message', () => {
+    const output = `
+  Failed CalculatorTests.AddTest [42 ms]
+  Error Message:
+   Assert.Equal() Failure
+  Stack Trace:
+     at CalculatorTests.AddTest() in /app/tests/CalculatorTests.cs:line 25
+
+`;
+    const diagnostics = parseTestOutput({ tool: 'dotnet.test', output });
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].severity).toBe('error');
+    expect(diagnostics[0].code).toBe('TestFailure');
+    expect(diagnostics[0].message).toBe('Assert.Equal() Failure');
+    expect(diagnostics[0].file).toBe('/app/tests/CalculatorTests.cs');
+    expect(diagnostics[0].line).toBe(25);
+  });
+
+  it('parses multiple failed tests', () => {
+    const output = `
+  Failed TestA [10 ms]
+  Error Message:
+   Error A
+  Stack Trace:
+     at TestA() in /app/A.cs:line 10
+
+  Failed TestB [20 ms]
+  Error Message:
+   Error B
+  Stack Trace:
+     at TestB() in /app/B.cs:line 20
+
+`;
+    const diagnostics = parseTestOutput({ tool: 'dotnet.test', output });
+
+    expect(diagnostics).toHaveLength(2);
+    expect(diagnostics[0].message).toBe('Error A');
+    expect(diagnostics[0].file).toBe('/app/A.cs');
+    expect(diagnostics[1].message).toBe('Error B');
+    expect(diagnostics[1].file).toBe('/app/B.cs');
+  });
+
+  it('handles test failure without stack trace', () => {
+    const output = `
+  Failed SomeTest [5 ms]
+  Error Message:
+   Test failed for unknown reason
+
+`;
+    const diagnostics = parseTestOutput({ tool: 'dotnet.test', output });
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].message).toBe('Test failed for unknown reason');
+    expect(diagnostics[0].file).toBeUndefined();
+    expect(diagnostics[0].line).toBeUndefined();
+  });
+
+  it('sets correct log range', () => {
+    const output = `Line 1
+  Failed TestA [10 ms]
+  Error Message:
+   Error message
+  Stack Trace:
+     at Test() in /app/test.cs:line 1
+
+Line 8`;
+    const diagnostics = parseTestOutput({ tool: 'dotnet.test', output });
+
+    expect(diagnostics[0].logRange.startLine).toBe(2);
+    expect(diagnostics[0].logRange.endLine).toBeGreaterThan(2);
+  });
+});

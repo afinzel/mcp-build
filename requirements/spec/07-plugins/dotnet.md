@@ -1,0 +1,85 @@
+# dotnet Plugins
+
+Plugins for .NET CLI tooling.
+
+---
+
+## dotnet.build
+
+| Property | Value |
+|----------|-------|
+| Name | `dotnet.build` |
+| Mutates Workspace | `false` |
+| Command | `dotnet build [args...]` |
+
+**Input:** `{ args?: string[], cwd?: string }`
+
+**Common args:** `--configuration`, `--no-restore`, `--verbosity`, project/solution path
+
+**Success:** Exit 0 = success. Warnings may exist on success.
+
+**Log format (MSBuild):**
+```
+path/File.cs(line,col): error CS1234: Error message
+```
+
+**Regex:**
+```regex
+^(?<file>[^(]+)\((?<line>\d+),(?<col>\d+)\):\s*(?<severity>error|warning)\s+(?<code>\w+):\s*(?<message>.+)$
+```
+
+**Sample diagnostic:**
+```json
+{
+  "tool": "dotnet.build", "severity": "error",
+  "message": "The name 'foo' does not exist in the current context",
+  "code": "CS0103", "file": "src/Program.cs", "line": 42, "column": 13,
+  "logRange": { "startLine": 15, "endLine": 15 },
+  "byteOffsets": { "start": 892, "end": 987 }
+}
+```
+
+---
+
+## dotnet.test
+
+| Property | Value |
+|----------|-------|
+| Name | `dotnet.test` |
+| Mutates Workspace | `false` |
+| Command | `dotnet test [args...]` |
+
+**Input:** `{ args?: string[], cwd?: string }`
+
+**Common args:** `--filter`, `--no-build`, `--configuration`, `--logger`, `--verbosity`
+
+**Success:** Exit 0 = all tests passed.
+
+**Log format:**
+```
+Failed TestClass.TestMethod [42 ms]
+  Error Message:
+   Assert.Equal() Failure
+  Stack Trace:
+   at TestClass.TestMethod() in /path/File.cs:line 25
+```
+
+**Strategy:** Parse "Failed" lines, extract test name and stack trace location.
+
+**Sample diagnostic:**
+```json
+{
+  "tool": "dotnet.test", "severity": "error",
+  "message": "Assert.Equal() Failure: Expected 5, Actual 3",
+  "code": "TestFailure", "file": "tests/CalculatorTests.cs", "line": 25,
+  "logRange": { "startLine": 8, "endLine": 12 },
+  "byteOffsets": { "start": 445, "end": 623 }
+}
+```
+
+---
+
+## Cross-References
+
+- Plugin interface: see `03-plugin-architecture.md`
+- Diagnostic schema: see `01-core-types.md`

@@ -1,0 +1,131 @@
+/**
+ * MCP Server implementation
+ */
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import type { PluginRegistry } from '../plugins/index.js';
+import type { StorageAPI } from '../storage/index.js';
+import { createToolHandler } from './tool-handler.js';
+import { createRawOutputHandler } from './raw-output-handler.js';
+import type { ToolInput } from './types.js';
+import type { RunRawInput, RunLogRangeInput } from './raw-output-types.js';
+
+export interface McpServerConfig {
+  name: string;
+  version: string;
+  registry: PluginRegistry;
+  storage: StorageAPI;
+  defaultCwd: string;
+}
+
+export interface McpServer {
+  start(): Promise<void>;
+}
+
+const RAW_OUTPUT_TOOLS = [
+  {
+    name: 'run.raw',
+    description: 'Get raw log output by byte offset. Use for debugging when structured diagnostics are insufficient.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string', description: 'Run ID from a previous tool call' },
+        offset: { type: 'number', description: 'Byte offset to start reading (default: 0)' },
+        length: { type: 'number', description: 'Number of bytes to read (default: 4096)' },
+      },
+      required: ['runId'],
+    },
+  },
+  {
+    name: 'run.logRange',
+    description: 'Get log lines by line number. Use to fetch context around a diagnostic.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string', description: 'Run ID from a previous tool call' },
+        startLine: { type: 'number', description: '1-indexed line number to start reading' },
+        lineCount: { type: 'number', description: 'Number of lines to read (default: 50)' },
+      },
+      required: ['runId', 'startLine'],
+    },
+  },
+];
+
+export function createMcpServer(config: McpServerConfig): McpServer {
+  const { name, version, registry, storage, defaultCwd } = config;
+
+  const server = new Server(
+    { name, version },
+    { capabilities: { tools: {} } }
+  );
+
+  const toolHandler = createToolHandler({ registry, storage, defaultCwd });
+  const rawOutputHandler = createRawOutputHandler(storage);
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const plugins = registry.list();
+
+    const pluginTools = plugins.map((plugin) => ({
+      name: plugin.name,
+      description: plugin.description,
+      inputSchema: plugin.inputSchema,
+    }));
+
+    return {
+      tools: [...pluginTools, ...RAW_OUTPUT_TOOLS],
+    };
+  });
+
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name: toolName, arguments: args } = request.params;
+    const typedArgs = args as Record<string, unknown> | undefined;
+
+    if (toolName === 'run.raw') {
+      const input: RunRawInput = {
+        runId: typedArgs?.runId as string,
+        offset: typedArgs?.offset as number | undefined,
+        length: typedArgs?.length as number | undefined,
+      };
+      const response = rawOutputHandler.handleRunRaw(input);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }],
+      };
+    }
+
+    if (toolName === 'run.logRange') {
+      const input: RunLogRangeInput = {
+        runId: typedArgs?.runId as string,
+        startLine: typedArgs?.startLine as number,
+        lineCount: typedArgs?.lineCount as number | undefined,
+      };
+      const response = rawOutputHandler.handleRunLogRange(input);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }],
+      };
+    }
+
+    const input: ToolInput = {
+      args: typedArgs?.args as string[] | undefined,
+      cwd: typedArgs?.cwd as string | undefined,
+      confirmed: typedArgs?.confirmed as boolean | undefined,
+    };
+
+    const response = await toolHandler.handleToolCall(toolName, input);
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(response, null, 2) }],
+    };
+  });
+
+  return {
+    async start(): Promise<void> {
+      const transport = new StdioServerTransport();
+      await server.connect(transport);
+    },
+  };
+}

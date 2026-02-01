@@ -13,6 +13,8 @@ function isToolResponse(result: ToolCallResult): result is ToolResponse {
   return 'success' in result && 'runId' in result;
 }
 
+import type { TestSummary } from '../../src/types/index.js';
+
 function createMockPlugin(
   name: string,
   options: {
@@ -20,6 +22,7 @@ function createMockPlugin(
     success?: boolean;
     diagnostics?: ReturnType<typeof createDiagnostic>[];
     exitCode?: number;
+    summary?: TestSummary;
   } = {}
 ): Plugin {
   const {
@@ -27,6 +30,7 @@ function createMockPlugin(
     success = true,
     diagnostics = [],
     exitCode = success ? 0 : 1,
+    summary,
   } = options;
 
   return {
@@ -41,7 +45,7 @@ function createMockPlugin(
       },
     },
     async execute(_input: PluginInput): Promise<PluginOutput> {
-      return { success, diagnostics, exitCode };
+      return { success, diagnostics, exitCode, summary };
     },
   };
 }
@@ -224,6 +228,79 @@ describe('createToolHandler', () => {
         expect(reader).not.toBeNull();
         expect(reader!.meta.tool).toBe('storage.test');
         expect(reader!.getDiagnostics()).toHaveLength(1);
+      }
+    });
+
+    it('propagates test summary to response', async () => {
+      const registry = createPluginRegistry();
+      const storage = createStorage();
+      const summary = { passed: 10, failed: 1, skipped: 0, total: 11 };
+      const plugin = createMockPlugin('test.runner', { summary });
+      registry.register(plugin);
+
+      const handler = createToolHandler({
+        registry,
+        storage,
+        defaultCwd: '/tmp',
+      });
+
+      const result = await handler.handleToolCall('test.runner', {});
+
+      expect(isToolResponse(result)).toBe(true);
+      if (isToolResponse(result)) {
+        expect(result.summary).toEqual(summary);
+      }
+    });
+
+    it('omits summary when plugin does not provide one', async () => {
+      const registry = createPluginRegistry();
+      const storage = createStorage();
+      const plugin = createMockPlugin('build.tool');
+      registry.register(plugin);
+
+      const handler = createToolHandler({
+        registry,
+        storage,
+        defaultCwd: '/tmp',
+      });
+
+      const result = await handler.handleToolCall('build.tool', {});
+
+      expect(isToolResponse(result)).toBe(true);
+      if (isToolResponse(result)) {
+        expect(result.summary).toBeUndefined();
+      }
+    });
+
+    it('includes summary even when tests fail', async () => {
+      const registry = createPluginRegistry();
+      const storage = createStorage();
+      const summary = { passed: 9, failed: 2, skipped: 0, total: 11 };
+      const plugin = createMockPlugin('test.runner', {
+        success: false,
+        summary,
+        diagnostics: [
+          createDiagnostic({
+            tool: 'test.runner',
+            severity: 'error',
+            message: 'Test failed',
+          }),
+        ],
+      });
+      registry.register(plugin);
+
+      const handler = createToolHandler({
+        registry,
+        storage,
+        defaultCwd: '/tmp',
+      });
+
+      const result = await handler.handleToolCall('test.runner', {});
+
+      expect(isToolResponse(result)).toBe(true);
+      if (isToolResponse(result)) {
+        expect(result.success).toBe(false);
+        expect(result.summary).toEqual(summary);
       }
     });
   });

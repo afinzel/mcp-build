@@ -3,6 +3,7 @@
  */
 
 import type { Diagnostic } from './diagnostic.js';
+import type { TestSummary } from './test-summary.js';
 
 /**
  * Simplified diagnostic for LLM consumption
@@ -24,6 +25,8 @@ export interface ToolResponse {
   warnings?: SimpleDiagnostic[];
   /** Run ID for raw output retrieval */
   runId: string;
+  /** Test summary (for test plugins) */
+  summary?: TestSummary;
 }
 
 /**
@@ -38,16 +41,24 @@ function simplifyDiagnostic(d: Diagnostic): SimpleDiagnostic {
   return simple;
 }
 
+export interface ResponseOptions {
+  summary?: TestSummary;
+}
+
 /**
  * Create a successful tool response
  */
 export function createSuccessResponse(
   runId: string,
-  warnings: Diagnostic[] = []
+  warnings: Diagnostic[] = [],
+  options: ResponseOptions = {}
 ): ToolResponse {
   const response: ToolResponse = { success: true, runId };
   if (warnings.length > 0) {
     response.warnings = warnings.map(simplifyDiagnostic);
+  }
+  if (options.summary) {
+    response.summary = options.summary;
   }
   return response;
 }
@@ -58,7 +69,8 @@ export function createSuccessResponse(
 export function createErrorResponse(
   runId: string,
   errors: Diagnostic[],
-  warnings: Diagnostic[] = []
+  warnings: Diagnostic[] = [],
+  options: ResponseOptions = {}
 ): ToolResponse {
   const response: ToolResponse = {
     success: false,
@@ -67,6 +79,9 @@ export function createErrorResponse(
   };
   if (warnings.length > 0) {
     response.warnings = warnings.map(simplifyDiagnostic);
+  }
+  if (options.summary) {
+    response.summary = options.summary;
   }
   return response;
 }

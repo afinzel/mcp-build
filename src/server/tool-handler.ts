@@ -73,11 +73,12 @@ export function createToolHandler(deps: ToolHandlerDependencies): ToolHandler {
 
         const errors = output.diagnostics.filter((d) => d.severity === 'error');
         const warnings = output.diagnostics.filter((d) => d.severity === 'warning');
+        const options = output.summary ? { summary: output.summary } : {};
 
         if (output.success) {
-          return createSuccessResponse(runWriter.runId, warnings);
+          return createSuccessResponse(runWriter.runId, warnings, options);
         } else {
-          return createErrorResponse(runWriter.runId, errors, warnings);
+          return createErrorResponse(runWriter.runId, errors, warnings, options);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

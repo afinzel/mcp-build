@@ -7,7 +7,7 @@ import { executeCommand } from '../executor.js';
 import { chainParsers } from '../parse-chain.js';
 import { parsePnpmOutput } from './parse-pnpm.js';
 import { parseTypescriptOutput } from '../typescript/parse-typescript.js';
-import { parseJestOutput } from '../jest/index.js';
+import { parseJestOutput, parseJestSummary } from '../jest/index.js';
 
 export const pnpmTestPlugin: Plugin = {
   name: 'pnpm.test',
@@ -50,10 +50,13 @@ export const pnpmTestPlugin: Plugin = {
       { tool: 'pnpm.test', output: result.output }
     );
 
+    const summary = parseJestSummary(result.output);
+
     return {
       success: result.exitCode === 0,
       diagnostics,
       exitCode: result.exitCode,
+      summary,
     };
   },
 };

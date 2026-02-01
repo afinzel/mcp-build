@@ -2,7 +2,7 @@
  * Parser for Jest test output
  */
 
-import { createDiagnostic, type Diagnostic } from '../../types/index.js';
+import { createDiagnostic, type Diagnostic, type TestSummary } from '../../types/index.js';
 
 // Matches FAIL filepath
 const FAIL_REGEX = /^FAIL\s+(.+)$/;
@@ -131,4 +131,52 @@ function createFailureDiagnostic(
     column: failure.column,
     logRange: { startLine: failure.testNameLine, endLine: failure.testNameLine },
   });
+}
+
+// Matches Jest summary line: Tests: 3 failed, 45 passed, 2 skipped, 50 total
+const JEST_SUMMARY_REGEX = /^Tests:\s+(.+)$/;
+
+/**
+ * Parse Jest test summary from output, aggregating results from all projects
+ */
+export function parseJestSummary(output: string): TestSummary | undefined {
+  const lines = output.split('\n');
+  let found = false;
+  const summary: TestSummary = {
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+    total: 0,
+  };
+
+  for (const line of lines) {
+    const match = line.match(JEST_SUMMARY_REGEX);
+    if (match) {
+      found = true;
+      const summaryPart = match[1];
+
+      // Parse each component: "3 failed", "45 passed", "2 skipped", "50 total"
+      const failedMatch = summaryPart.match(/(\d+)\s+failed/);
+      if (failedMatch) {
+        summary.failed += parseInt(failedMatch[1], 10);
+      }
+
+      const passedMatch = summaryPart.match(/(\d+)\s+passed/);
+      if (passedMatch) {
+        summary.passed += parseInt(passedMatch[1], 10);
+      }
+
+      const skippedMatch = summaryPart.match(/(\d+)\s+(?:skipped|todo)/);
+      if (skippedMatch) {
+        summary.skipped += parseInt(skippedMatch[1], 10);
+      }
+
+      const totalMatch = summaryPart.match(/(\d+)\s+total/);
+      if (totalMatch) {
+        summary.total += parseInt(totalMatch[1], 10);
+      }
+    }
+  }
+
+  return found ? summary : undefined;
 }

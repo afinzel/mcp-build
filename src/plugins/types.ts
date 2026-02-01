@@ -2,7 +2,7 @@
  * Plugin types and interfaces
  */
 
-import type { Diagnostic } from '../types/index.js';
+import type { Diagnostic, TestSummary } from '../types/index.js';
 import type { RunWriter } from '../storage/index.js';
 
 export interface JSONSchema {
@@ -24,6 +24,7 @@ export interface PluginOutput {
   success: boolean;
   diagnostics: Diagnostic[];
   exitCode: number;
+  summary?: TestSummary;
 }
 
 export interface Plugin {

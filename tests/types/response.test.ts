@@ -96,4 +96,46 @@ describe('createErrorResponse', () => {
     expect(response.errors![0]).not.toHaveProperty('line');
     expect(response.errors![0]).not.toHaveProperty('code');
   });
+
+  it('includes summary when provided', () => {
+    const error = createDiagnostic({
+      tool: 'npm.test',
+      severity: 'error',
+      message: 'Test failed',
+    });
+    const summary = { passed: 9, failed: 1, skipped: 0, total: 10 };
+
+    const response = createErrorResponse('run-sum', [error], [], { summary });
+
+    expect(response.summary).toEqual(summary);
+  });
+
+  it('omits summary when not provided', () => {
+    const error = createDiagnostic({
+      tool: 'npm.test',
+      severity: 'error',
+      message: 'Test failed',
+    });
+
+    const response = createErrorResponse('run-no-sum', [error]);
+
+    expect(response.summary).toBeUndefined();
+  });
+});
+
+describe('createSuccessResponse with summary', () => {
+  it('includes summary when provided', () => {
+    const summary = { passed: 11, failed: 0, skipped: 0, total: 11 };
+
+    const response = createSuccessResponse('run-sum', [], { summary });
+
+    expect(response.success).toBe(true);
+    expect(response.summary).toEqual(summary);
+  });
+
+  it('omits summary when not provided', () => {
+    const response = createSuccessResponse('run-no-sum');
+
+    expect(response.summary).toBeUndefined();
+  });
 });

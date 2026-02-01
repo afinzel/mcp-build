@@ -2,7 +2,7 @@
  * Parser for dotnet test output
  */
 
-import { createDiagnostic, type Diagnostic } from '../../types/index.js';
+import { createDiagnostic, type Diagnostic, type TestSummary } from '../../types/index.js';
 
 const FAILED_TEST_REGEX = /^\s*Failed\s+(.+?)\s+\[/;
 const STACK_TRACE_REGEX = /in\s+(.+?):line\s+(\d+)/;
@@ -96,4 +96,33 @@ export function parseTestOutput(options: ParseTestOptions): Diagnostic[] {
   }
 
   return diagnostics;
+}
+
+/**
+ * Parse dotnet test summary from output, aggregating results from all projects
+ */
+export function parseDotnetTestSummary(output: string): TestSummary | undefined {
+  // Regex created inside function to avoid lastIndex state issues with global flag
+  // Matches: Passed! - Failed: 0, Passed: 11, Skipped: 0, Total: 11
+  // Also matches: Failed! - Failed: 2, Passed: 9, Skipped: 0, Total: 11
+  const regex =
+    /(?:Passed!|Failed!)\s*-\s*Failed:\s*(\d+),\s*Passed:\s*(\d+),\s*Skipped:\s*(\d+),\s*Total:\s*(\d+)/g;
+  const matches = output.matchAll(regex);
+  let found = false;
+  const summary: TestSummary = {
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+    total: 0,
+  };
+
+  for (const match of matches) {
+    found = true;
+    summary.failed += parseInt(match[1], 10);
+    summary.passed += parseInt(match[2], 10);
+    summary.skipped += parseInt(match[3], 10);
+    summary.total += parseInt(match[4], 10);
+  }
+
+  return found ? summary : undefined;
 }

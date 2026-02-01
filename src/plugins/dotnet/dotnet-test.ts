@@ -4,7 +4,7 @@
 
 import type { Plugin, PluginInput, PluginOutput } from '../types.js';
 import { executeCommand } from '../executor.js';
-import { parseTestOutput } from './parse-test.js';
+import { parseTestOutput, parseDotnetTestSummary } from './parse-test.js';
 
 export const dotnetTestPlugin: Plugin = {
   name: 'dotnet.test',
@@ -44,10 +44,13 @@ export const dotnetTestPlugin: Plugin = {
       output: result.output,
     });
 
+    const summary = parseDotnetTestSummary(result.output);
+
     return {
       success: result.exitCode === 0,
       diagnostics,
       exitCode: result.exitCode,
+      summary,
     };
   },
 };

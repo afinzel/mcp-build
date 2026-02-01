@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTestOutput } from '../../../src/plugins/dotnet/parse-test.js';
+import { parseTestOutput, parseDotnetTestSummary } from '../../../src/plugins/dotnet/parse-test.js';
 
 describe('parseTestOutput', () => {
   it('returns empty array for passing tests', () => {
@@ -86,5 +86,87 @@ Line 8`;
 
     expect(diagnostics[0].logRange.startLine).toBe(2);
     expect(diagnostics[0].logRange.endLine).toBeGreaterThan(2);
+  });
+});
+
+describe('parseDotnetTestSummary', () => {
+  it('returns undefined for output without summary', () => {
+    const output = `
+Test run for /app/tests.dll (.NETCoreApp,Version=v6.0)
+Starting test execution, please wait...
+`;
+    const summary = parseDotnetTestSummary(output);
+    expect(summary).toBeUndefined();
+  });
+
+  it('parses passed summary', () => {
+    const output = `
+Test run for /app/tests.dll (.NETCoreApp,Version=v6.0)
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    11, Skipped:     0, Total:    11
+`;
+    const summary = parseDotnetTestSummary(output);
+
+    expect(summary).toEqual({
+      passed: 11,
+      failed: 0,
+      skipped: 0,
+      total: 11,
+    });
+  });
+
+  it('parses failed summary', () => {
+    const output = `
+Test run for /app/tests.dll (.NETCoreApp,Version=v6.0)
+Starting test execution, please wait...
+
+Failed!  - Failed:     2, Passed:     9, Skipped:     1, Total:    12
+`;
+    const summary = parseDotnetTestSummary(output);
+
+    expect(summary).toEqual({
+      passed: 9,
+      failed: 2,
+      skipped: 1,
+      total: 12,
+    });
+  });
+
+  it('handles varied spacing in summary', () => {
+    const output = `Passed!  - Failed:  0, Passed:  5, Skipped:  0, Total:  5`;
+    const summary = parseDotnetTestSummary(output);
+
+    expect(summary).toEqual({
+      passed: 5,
+      failed: 0,
+      skipped: 0,
+      total: 5,
+    });
+  });
+
+  it('aggregates results from multiple projects', () => {
+    const output = `
+Test run for /app/ProjectA/tests.dll (.NETCoreApp,Version=v6.0)
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     5, Skipped:     1, Total:     6
+
+Test run for /app/ProjectB/tests.dll (.NETCoreApp,Version=v6.0)
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Failed!  - Failed:     2, Passed:     8, Skipped:     0, Total:    10
+`;
+    const summary = parseDotnetTestSummary(output);
+
+    expect(summary).toEqual({
+      passed: 13,
+      failed: 2,
+      skipped: 1,
+      total: 16,
+    });
   });
 });

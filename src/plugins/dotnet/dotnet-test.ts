@@ -4,6 +4,8 @@
 
 import type { Plugin, PluginInput, PluginOutput } from '../types.js';
 import { executeCommand } from '../executor.js';
+import { chainParsers } from '../parse-chain.js';
+import { parseBuildOutput } from './parse-build.js';
 import { parseTestOutput, parseDotnetTestSummary } from './parse-test.js';
 
 export const dotnetTestPlugin: Plugin = {
@@ -39,10 +41,10 @@ export const dotnetTestPlugin: Plugin = {
       runWriter,
     });
 
-    const diagnostics = parseTestOutput({
-      tool: 'dotnet.test',
-      output: result.output,
-    });
+    const diagnostics = chainParsers(
+      [parseBuildOutput, parseTestOutput],
+      { tool: 'dotnet.test', output: result.output }
+    );
 
     const summary = parseDotnetTestSummary(result.output);
 

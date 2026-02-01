@@ -25,6 +25,19 @@ interface ToolInput {
 
 ---
 
+## Token Efficiency
+
+Structured diagnostics use significantly fewer tokens than raw build output. A typical build failure might produce 500+ lines of output, but the structured response extracts only the essential information:
+
+| Approach | Typical Tokens |
+|----------|----------------|
+| Raw `dotnet build` output | 2,000 - 10,000+ |
+| Structured diagnostic | 50 - 200 |
+
+**Best practice:** Start with structured diagnostics. Only fetch raw logs when you need additional context (stack traces, surrounding output). This keeps conversations efficient and reduces costs.
+
+---
+
 ## Output Schema
 
 All tools return structured diagnostics:
@@ -164,7 +177,7 @@ Claude should request raw logs only when:
 - **Test failures** - to see full stack traces
 - **Empty errors array** - when success=false but no diagnostics parsed
 
-**Default behavior:** Structured diagnostics are sufficient 90%+ of the time.
+**Default behavior:** Structured diagnostics are sufficient 90%+ of the time. Raw logs consume many more tokens, so only fetch them when the structured response doesn't provide enough information.
 
 ---
 

@@ -10,6 +10,8 @@ Raw output is **always captured** but **never returned by default**.
 
 Use raw logs for: debugging parser failures, investigating unexpected errors, accessing output not in diagnostics.
 
+**Token efficiency:** Raw logs can be 10-100x larger than structured diagnostics. A build with errors might have 5,000+ tokens of raw output but only 100 tokens of structured diagnostics. Always start with structured responses and only fetch raw logs when needed.
+
 ---
 
 ## run.raw

@@ -34,6 +34,7 @@ const RAW_OUTPUT_TOOLS = [
       'Get raw log output by byte offset. Use to get full stack traces from failed tests, ' +
       'or when the structured errors array is empty but success=false. ' +
       'Workflow: After dotnet_test/dotnet_build returns a failure, call run_raw with the runId to see complete error output. ' +
+      'Note: Raw logs use significantly more tokens than structured diagnostics - only fetch when needed. ' +
       'Prefer this for initial debugging; use run_logRange to zoom into specific sections.',
     inputSchema: {
       type: 'object',

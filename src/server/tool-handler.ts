@@ -2,6 +2,8 @@
  * Tool handler - bridges MCP tools to plugins
  */
 
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -44,8 +46,20 @@ export function createToolHandler(deps: ToolHandlerDependencies): ToolHandler {
         ]);
       }
 
-      const cwd = input.cwd ?? defaultCwd;
+      const rawCwd = input.cwd ?? defaultCwd;
+      const cwd = path.isAbsolute(rawCwd) ? rawCwd : path.resolve(defaultCwd, rawCwd);
       const args = input.args ?? [];
+
+      if (!existsSync(cwd)) {
+        return createErrorResponse('', [
+          createDiagnostic({
+            tool: plugin.name,
+            severity: 'error',
+            message: `Working directory does not exist: ${cwd}`,
+            code: 'INVALID_CWD',
+          }),
+        ]);
+      }
 
       const permissionCheck = checkPermission({
         plugin,

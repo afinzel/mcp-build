@@ -82,6 +82,56 @@ describe('createToolHandler', () => {
       }
     });
 
+    it('returns error for non-existent cwd', async () => {
+      const registry = createPluginRegistry();
+      const storage = createStorage();
+      const plugin = createMockPlugin('test.tool');
+      registry.register(plugin);
+
+      const handler = createToolHandler({
+        registry,
+        storage,
+        defaultCwd: '/tmp',
+      });
+
+      const result = await handler.handleToolCall('test.tool', {
+        cwd: '/nonexistent/path/that/does/not/exist',
+      });
+
+      expect(isToolResponse(result)).toBe(true);
+      if (isToolResponse(result)) {
+        expect(result.success).toBe(false);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0].code).toBe('INVALID_CWD');
+        expect(result.errors[0].message).toContain('/nonexistent/path/that/does/not/exist');
+      }
+    });
+
+    it('resolves relative cwd against defaultCwd', async () => {
+      const registry = createPluginRegistry();
+      const storage = createStorage();
+      const plugin = createMockPlugin('test.tool');
+      registry.register(plugin);
+
+      const handler = createToolHandler({
+        registry,
+        storage,
+        defaultCwd: TEST_DIR,
+      });
+
+      // Create a subdirectory
+      mkdirSync(`${TEST_DIR}/subdir`, { recursive: true });
+
+      const result = await handler.handleToolCall('test.tool', {
+        cwd: 'subdir',
+      });
+
+      expect(isToolResponse(result)).toBe(true);
+      if (isToolResponse(result)) {
+        expect(result.success).toBe(true);
+      }
+    });
+
     it('executes non-mutating plugin without confirmation', async () => {
       const registry = createPluginRegistry();
       const storage = createStorage();
@@ -315,7 +365,7 @@ describe('createToolHandler', () => {
       const handler = createToolHandler({
         registry,
         storage,
-        defaultCwd: '/project',
+        defaultCwd: TEST_DIR,
       });
 
       const result = await handler.handleToolCall('npm.install', {
@@ -327,7 +377,7 @@ describe('createToolHandler', () => {
         expect(result.confirmationRequired).toBe(true);
         expect(result.tool).toBe('npm.install');
         expect(result.args).toEqual(['typescript']);
-        expect(result.cwd).toBe('/project');
+        expect(result.cwd).toBe(TEST_DIR);
       }
     });
 
@@ -340,7 +390,7 @@ describe('createToolHandler', () => {
       const handler = createToolHandler({
         registry,
         storage,
-        defaultCwd: '/project',
+        defaultCwd: TEST_DIR,
       });
 
       const result = await handler.handleToolCall('npm.install', {
@@ -363,7 +413,7 @@ describe('createToolHandler', () => {
       const handler = createToolHandler({
         registry,
         storage,
-        defaultCwd: '/project',
+        defaultCwd: TEST_DIR,
       });
 
       const result = await handler.handleToolCall('dotnet.build', {});

@@ -38,7 +38,7 @@ interface PendingFailure {
 
 export function parseJestOutput(options: ParseJestOptions): Diagnostic[] {
   const { tool, output } = options;
-  const lines = output.split('\n');
+  const lines = output.split(/\r?\n/);
   const diagnostics: Diagnostic[] = [];
 
   let currentFile: string | undefined;
@@ -140,7 +140,7 @@ const JEST_SUMMARY_REGEX = /^Tests:\s+(.+)$/;
  * Parse Jest test summary from output, aggregating results from all projects
  */
 export function parseJestSummary(output: string): TestSummary | undefined {
-  const lines = output.split('\n');
+  const lines = output.split(/\r?\n/);
   let found = false;
   const summary: TestSummary = {
     passed: 0,

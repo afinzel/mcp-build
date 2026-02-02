@@ -14,7 +14,7 @@ export interface ParseNpmOptions {
 
 export function parseNpmOutput(options: ParseNpmOptions): Diagnostic[] {
   const { tool, output } = options;
-  const lines = output.split('\n');
+  const lines = output.split(/\r?\n/);
   const diagnostics: Diagnostic[] = [];
 
   for (let i = 0; i < lines.length; i++) {

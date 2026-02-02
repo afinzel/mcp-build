@@ -19,16 +19,29 @@ Plugins for .NET CLI tooling.
 **Success:** Exit 0 = success. Warnings may exist on success.
 
 **Log format (MSBuild):**
+
+Source-level diagnostics (with line/column):
 ```
 path/File.cs(line,col): error CS1234: Error message
 ```
 
-**Regex:**
+Project-level diagnostics (no line/column, e.g., file locks):
+```
+path/Project.csproj : error MSB3021: Unable to copy file...
+MSBUILD : error MSB1009: Project file does not exist.
+```
+
+**Regex (source-level):**
 ```regex
 ^(?<file>[^(]+)\((?<line>\d+),(?<col>\d+)\):\s*(?<severity>error|warning)\s+(?<code>\w+):\s*(?<message>.+)$
 ```
 
-**Sample diagnostic:**
+**Regex (project-level):**
+```regex
+^(?<file>.+?)\s*:\s*(?<severity>error|warning)\s+(?<code>\w+):\s*(?<message>.+)$
+```
+
+**Sample diagnostic (source-level):**
 ```json
 {
   "tool": "dotnet.build", "severity": "error",
@@ -36,6 +49,16 @@ path/File.cs(line,col): error CS1234: Error message
   "code": "CS0103", "file": "src/Program.cs", "line": 42, "column": 13,
   "logRange": { "startLine": 15, "endLine": 15 },
   "byteOffsets": { "start": 892, "end": 987 }
+}
+```
+
+**Sample diagnostic (project-level, e.g., file lock):**
+```json
+{
+  "tool": "dotnet.build", "severity": "error",
+  "message": "Unable to copy file \"obj\\Debug\\net8.0\\Project.dll\" to \"bin\\Debug\\net8.0\\Project.dll\". The process cannot access the file because it is being used by another process.",
+  "code": "MSB3021", "file": "R:\\path\\Project.csproj",
+  "logRange": { "startLine": 8, "endLine": 8 }
 }
 ```
 

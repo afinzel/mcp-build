@@ -23,7 +23,7 @@ export interface ParseTestOptions {
 
 export function parseTestOutput(options: ParseTestOptions): Diagnostic[] {
   const { tool, output } = options;
-  const lines = output.split('\n');
+  const lines = output.split(/\r?\n/);
   const diagnostics: Diagnostic[] = [];
   const failures: TestFailure[] = [];
 

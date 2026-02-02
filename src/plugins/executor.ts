@@ -39,7 +39,7 @@ export function executeCommand(
 
     const child = spawn(command, args, {
       cwd,
-      shell: false,
+      shell: true,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: buildEnvWithNodeModulesBin(cwd),
     });

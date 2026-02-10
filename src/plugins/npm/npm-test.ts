@@ -8,6 +8,7 @@ import { chainParsers } from '../parse-chain.js';
 import { parseNpmOutput } from './parse-npm.js';
 import { parseTypescriptOutput } from '../typescript/parse-typescript.js';
 import { parseJestOutput, parseJestSummary } from '../jest/index.js';
+import { parseVitestOutput, parseVitestSummary } from '../vitest/index.js';
 
 export const npmTestPlugin: Plugin = {
   name: 'npm.test',
@@ -46,11 +47,11 @@ export const npmTestPlugin: Plugin = {
     });
 
     const diagnostics = chainParsers(
-      [parseNpmOutput, parseTypescriptOutput, parseJestOutput],
+      [parseNpmOutput, parseTypescriptOutput, parseJestOutput, parseVitestOutput],
       { tool: 'npm.test', output: result.output }
     );
 
-    const summary = parseJestSummary(result.output);
+    const summary = parseJestSummary(result.output) ?? parseVitestSummary(result.output);
 
     return {
       success: result.exitCode === 0,

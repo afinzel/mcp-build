@@ -14,6 +14,8 @@ import { createToolHandler } from './tool-handler.js';
 import { createRawOutputHandler } from './raw-output-handler.js';
 import type { ToolInput } from './types.js';
 import type { RunRawInput, RunLogRangeInput } from './raw-output-types.js';
+import { createFeedbackHandler } from './feedback-handler.js';
+import type { ReportIssueInput } from './feedback-types.js';
 
 export interface McpServerConfig {
   name: string;
@@ -64,6 +66,27 @@ const RAW_OUTPUT_TOOLS = [
   },
 ];
 
+const FEEDBACK_TOOL = {
+  name: 'report_issue',
+  description:
+    'File a GitHub issue for Runvise improvements or bugs encountered while using the tools. ' +
+    'Always confirm with the user before calling. ' +
+    'Do not include secrets, API keys, or PII.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      title: { type: 'string', description: 'Short issue title' },
+      body: { type: 'string', description: 'Detailed description of the issue' },
+      category: {
+        type: 'string',
+        description: 'Category: bug, enhancement, or question',
+        default: 'enhancement',
+      },
+    },
+    required: ['title', 'body'],
+  },
+};
+
 export function createMcpServer(config: McpServerConfig): McpServer {
   const { name, version, registry, storage, defaultCwd } = config;
 
@@ -74,6 +97,7 @@ export function createMcpServer(config: McpServerConfig): McpServer {
 
   const toolHandler = createToolHandler({ registry, storage, defaultCwd });
   const rawOutputHandler = createRawOutputHandler(storage);
+  const feedbackHandler = createFeedbackHandler();
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const plugins = registry.list();
@@ -85,7 +109,7 @@ export function createMcpServer(config: McpServerConfig): McpServer {
     }));
 
     return {
-      tools: [...pluginTools, ...RAW_OUTPUT_TOOLS],
+      tools: [...pluginTools, ...RAW_OUTPUT_TOOLS, FEEDBACK_TOOL],
     };
   });
 
@@ -100,6 +124,18 @@ export function createMcpServer(config: McpServerConfig): McpServer {
         length: typedArgs?.length as number | undefined,
       };
       const response = rawOutputHandler.handleRunRaw(input);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }],
+      };
+    }
+
+    if (toolName === 'report_issue') {
+      const input: ReportIssueInput = {
+        title: typedArgs?.title as string,
+        body: typedArgs?.body as string,
+        category: typedArgs?.category as ReportIssueInput['category'],
+      };
+      const response = await feedbackHandler.handleReportIssue(input);
       return {
         content: [{ type: 'text', text: JSON.stringify(response, null, 2) }],
       };

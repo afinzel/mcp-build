@@ -5,6 +5,7 @@ import {
   executeCommand,
   getUserPathFromShell,
   getFallbackPaths,
+  quoteForCmd,
   resetPathCache,
 } from '../../src/plugins/executor.js';
 import { createStorage } from '../../src/storage/index.js';
@@ -49,10 +50,9 @@ describe('executeCommand', () => {
     const storage = createStorage();
     const runWriter = storage.createRun('test', '/tmp', ['echo error >&2']);
 
-    // With shell: true, we pass the entire command as one string
     const result = await executeCommand({
-      command: 'echo error >&2',
-      args: [],
+      command: 'sh',
+      args: ['-c', 'echo error >&2'],
       cwd: '/tmp',
       runWriter,
     });
@@ -67,10 +67,9 @@ describe('executeCommand', () => {
     const storage = createStorage();
     const runWriter = storage.createRun('test', '/tmp', ['exit 42']);
 
-    // With shell: true, exit is a shell built-in
     const result = await executeCommand({
-      command: 'exit 42',
-      args: [],
+      command: 'sh',
+      args: ['-c', 'exit 42'],
       cwd: '/tmp',
       runWriter,
     });
@@ -84,7 +83,6 @@ describe('executeCommand', () => {
     const storage = createStorage();
     const runWriter = storage.createRun('test', '/tmp', ['nonexistent-command']);
 
-    // With shell: true, command not found returns exit code 127 instead of rejecting
     const result = await executeCommand({
       command: 'nonexistent-command-xyz-123',
       args: [],
@@ -96,6 +94,24 @@ describe('executeCommand', () => {
 
     expect(result.exitCode).toBe(127);
     expect(result.output).toContain('not found');
+  });
+
+  it('passes arguments with shell metacharacters through unsplit', async () => {
+    const storage = createStorage();
+    const filter = 'FullyQualifiedName~A|FullyQualifiedName~B';
+    const runWriter = storage.createRun('test', '/tmp', ['printf', filter]);
+
+    const result = await executeCommand({
+      command: 'printf',
+      args: ['%s\\n', filter, '$HOME', 'a b; echo injected'],
+      cwd: '/tmp',
+      runWriter,
+    });
+
+    runWriter.complete(result.exitCode);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toBe(`${filter}\n$HOME\na b; echo injected\n`);
   });
 
   it('finds executables in node_modules/.bin', async () => {
@@ -209,5 +225,27 @@ describe('resetPathCache', () => {
     // Should work without error (cache was cleared)
     const path = getUserPathFromShell();
     expect(path).not.toBeNull();
+  });
+});
+
+describe('quoteForCmd', () => {
+  it('leaves a plain argument unquoted', () => {
+    expect(quoteForCmd('--no-build')).toBe('--no-build');
+  });
+
+  it('quotes an argument holding a pipe', () => {
+    expect(quoteForCmd('Name~A|Name~B')).toBe('"Name~A|Name~B"');
+  });
+
+  it('quotes an argument holding a space', () => {
+    expect(quoteForCmd('my project')).toBe('"my project"');
+  });
+
+  it('doubles embedded double quotes', () => {
+    expect(quoteForCmd('say "hi"')).toBe('"say ""hi"""');
+  });
+
+  it('quotes an empty argument', () => {
+    expect(quoteForCmd('')).toBe('""');
   });
 });

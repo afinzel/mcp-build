@@ -110,6 +110,20 @@ function buildEnvWithNodeModulesBin(cwd: string): NodeJS.ProcessEnv {
   };
 }
 
+const CMD_SPECIAL_CHARACTERS = /[\s"&|<>^%()!,;=]/;
+
+/**
+ * Windows needs a shell to run .cmd shims such as npm.cmd, so each argument is
+ * quoted for cmd.exe. Elsewhere arguments go to the process as they are, with
+ * no shell to split a filter like "A|B" at the pipe.
+ */
+export function quoteForCmd(argument: string): string {
+  if (argument !== '' && !CMD_SPECIAL_CHARACTERS.test(argument)) {
+    return argument;
+  }
+  return `"${argument.replace(/"/g, '""')}"`;
+}
+
 export function executeCommand(
   options: ExecuteCommandOptions
 ): Promise<ExecuteCommandResult> {
@@ -118,9 +132,10 @@ export function executeCommand(
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
 
-    const child = spawn(command, args, {
+    const useShell = process.platform === 'win32';
+    const child = spawn(command, useShell ? args.map(quoteForCmd) : args, {
       cwd,
-      shell: true,
+      shell: useShell,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: buildEnvWithNodeModulesBin(cwd),
     });
@@ -135,7 +150,13 @@ export function executeCommand(
       runWriter.appendLog(chunk);
     });
 
-    child.on('error', (error) => {
+    child.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') {
+        const message = Buffer.from(`${command}: not found\n`);
+        runWriter.appendLog(message);
+        resolve({ exitCode: 127, output: message.toString('utf-8') });
+        return;
+      }
       reject(error);
     });
 
